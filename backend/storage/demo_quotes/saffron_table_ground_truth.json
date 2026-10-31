@@ -1,0 +1,76 @@
+{
+  "vendor_name": "Saffron Table Gourmet Catering Services",
+  "address": "B-12, Vaishali Nagar, Jaipur 302021",
+  "gstin": "08AAGCS9912L1ZY",
+  "contact_person": "Vikram Rao",
+  "phone": "+91 98290 11223",
+  "email": "vikram@saffrontable.in",
+  "quotation_no": "ST-2026-NOV-114",
+  "issue_date": "2026-10-18",
+  "validity": "Valid for 21 days (Until 08 Nov 2026)",
+  "client_names": "Mehra \u00d7 Kapoor Wedding Reception",
+  "event_name": "Luxury Awadhi & Pan-Indian Reception",
+  "dates": "14\u201316 November 2026",
+  "venue": "The Oberoi Rajvilas",
+  "city": "Jaipur",
+  "category": "catering",
+  "guest_count": 420,
+  "line_items": [
+    {
+      "description": "Signature Awadhi & Pan-Indian Buffet Spread (420 guests)",
+      "quantity": 420,
+      "unit": "plate",
+      "unit_price": 3200.0,
+      "line_total": 1344000.0
+    },
+    {
+      "description": "Live Sigri Kebab & Lucknowi Tandoor Station",
+      "quantity": 420,
+      "unit": "pax",
+      "unit_price": 400.0,
+      "line_total": 168000.0
+    },
+    {
+      "description": "Gourmet Dessert Studio with Nitrogen Ice Cream Station",
+      "quantity": 420,
+      "unit": "pax",
+      "unit_price": 300.0,
+      "line_total": 126000.0
+    }
+  ],
+  "additional_charges_rows": [
+    {
+      "description": "Kitchen Logistics, Refrigerated Van Transport & Freight",
+      "quantity": 1,
+      "unit": "lump_sum",
+      "unit_price": 25000.0,
+      "line_total": 25000.0
+    },
+    {
+      "description": "Dedicated Acoustic Generator: EXCLUDED (Client must arrange independently)",
+      "quantity": 1,
+      "unit": "unit",
+      "unit_price": 0.0,
+      "line_total": 0.0
+    }
+  ],
+  "subtotal": 1638000.0,
+  "additional_charges_total": 25000.0,
+  "gst_rate_percent": 18,
+  "gst_breakdown": "9% CGST + 9% SGST",
+  "tax_amount": 299340.0,
+  "grand_total": 1962340.0,
+  "inclusions": [
+    "Premium German porcelain tableware and gold-rimmed crystal glassware",
+    "50 executive banquet servers and 5 certified floor managers",
+    "Full kitchen setup, chafers, induction food warmers",
+    "Complimentary 3-tier custom wedding cake"
+  ],
+  "exclusions": [
+    "Acoustic power generator (Venue power hookup or generator must be client arranged)",
+    "Liquor license handling & bar refrigeration units",
+    "Overtime service past midnight (billed @ INR 15,000/hr)"
+  ],
+  "power_and_overtime_policy": "Power backup generator excluded. Client must arrange minimum 60 kVA. Overtime after 12:00 midnight @ INR 15,000/hr.",
+  "payment_terms": "50% non-refundable booking deposit; 40% 7 days prior to event; 10% post-event within 24 hours."
+}
