@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+env/
+*/node_modules/
+*/.venv/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Build outputs
+dist/
+build/
+*/dist/
+*/build/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+backend/mandap.db
+
+# Python caches and bytecode
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+*/.pytest_cache/
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

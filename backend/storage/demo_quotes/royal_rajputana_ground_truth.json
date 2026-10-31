@@ -1,0 +1,84 @@
+{
+  "vendor_name": "Royal Rajputana Hospitality & Banquets Pvt. Ltd.",
+  "address": "42-A, M.I. Road, C-Scheme, Jaipur 302001",
+  "gstin": "08AAACR4291K1Z5",
+  "contact_person": "Mahaveer Singh Rathore",
+  "phone": "+91 98290 44882",
+  "email": "events@royalrajputana.in",
+  "quotation_no": "RRH-2026-CAT-042",
+  "issue_date": "2026-10-15",
+  "validity": "Valid for 30 days (Until 14 Nov 2026)",
+  "client_names": "Mehra \u00d7 Kapoor Wedding Reception",
+  "event_name": "Royal Imperial Wedding Feast",
+  "dates": "14\u201316 November 2026",
+  "venue": "The Oberoi Rajvilas",
+  "city": "Jaipur",
+  "category": "catering",
+  "guest_count": 420,
+  "line_items": [
+    {
+      "description": "Royal Rajasthani Imperial Dinner Buffet (Live kitchen, silver chafers)",
+      "quantity": 420,
+      "unit": "plate",
+      "unit_price": 2850.0,
+      "line_total": 1197000.0
+    },
+    {
+      "description": "Live Chaat & Jodhpur Street Food Counter (12 varieties)",
+      "quantity": 420,
+      "unit": "pax",
+      "unit_price": 350.0,
+      "line_total": 147000.0
+    },
+    {
+      "description": "Artisan Royal Dessert & Traditional Mithai Display (Ghewar, Malpua)",
+      "quantity": 420,
+      "unit": "pax",
+      "unit_price": 250.0,
+      "line_total": 105000.0
+    },
+    {
+      "description": "Welcome Beverage & Handcrafted Mocktail Station",
+      "quantity": 420,
+      "unit": "pax",
+      "unit_price": 150.0,
+      "line_total": 63000.0
+    }
+  ],
+  "additional_charges_rows": [
+    {
+      "description": "Dedicated 62.5 kVA Silent Acoustic Sound & Power Generator (8 hrs fuel)",
+      "quantity": 1,
+      "unit": "lump_sum",
+      "unit_price": 45000.0,
+      "line_total": 45000.0
+    },
+    {
+      "description": "Service Crew Uniformed Staffing (40 banquet waitstaff, 4 captains)",
+      "quantity": 44,
+      "unit": "staff",
+      "unit_price": 0.0,
+      "line_total": 0.0
+    }
+  ],
+  "subtotal": 1512000.0,
+  "additional_charges_total": 45000.0,
+  "gst_rate_percent": 18,
+  "gst_breakdown": "9% CGST + 9% SGST",
+  "tax_amount": 280260.0,
+  "grand_total": 1837260.0,
+  "inclusions": [
+    "Full brass and silver-plated dining setup & bone china",
+    "40 uniformed banquet staff and 4 supervisory captains",
+    "Dedicated 62.5 kVA acoustic sound & power generator with 8 hrs diesel",
+    "Live cooking counters and breakdown within 3 hours",
+    "Hygienic RO mineral water and food-grade ice carving stations"
+  ],
+  "exclusions": [
+    "Alcoholic beverages & excise bar serving permits",
+    "Overtime service extending past 1:00 AM (billed @ INR 12,000/hr)",
+    "Venue lawn clearance deposit (payable directly to Oberoi Rajvilas)"
+  ],
+  "power_and_overtime_policy": "Dedicated 62.5 kVA acoustic silent generator included with 8 hours fuel. Overtime past 1:00 AM charged at INR 12,000/hr.",
+  "payment_terms": "30% booking advance upon signing; 50% 14 days prior to event; 20% on the morning of 14 November 2026."
+}

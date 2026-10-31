@@ -1,0 +1,82 @@
+{
+  "vendor_name": "Heritage Mewar Culinary Arts",
+  "address": "15, City Palace Road, Udaipur 313001",
+  "gstin": "08AAUHM7741P1ZB",
+  "contact_person": "Arjun Singh Mewari",
+  "phone": "+91 98291 44556",
+  "email": "orders@heritagemewar.com",
+  "quotation_no": "HMC-2026-881",
+  "issue_date": "2026-10-20",
+  "validity": "Valid for 15 days (Until 04 Nov 2026)",
+  "client_names": "Mehra \u00d7 Kapoor Wedding Reception",
+  "event_name": "Royal Feast & Mewari Banquet",
+  "dates": "14\u201316 November 2026",
+  "venue": "The Oberoi Rajvilas",
+  "city": "Jaipur",
+  "category": "catering",
+  "guest_count": 420,
+  "line_items": [
+    {
+      "description": "Heritage Mewari Thali & Buffet Spread (420 guests basis)",
+      "quantity": 420,
+      "unit": "plate",
+      "unit_price": 2600.0,
+      "line_total": 1092000.0
+    },
+    {
+      "description": "Live Dal Baati Churma, Gatte & Ker Sangri Counter",
+      "quantity": 420,
+      "unit": "pax",
+      "unit_price": 250.0,
+      "line_total": 105000.0
+    },
+    {
+      "description": "Traditional Halwai Live Sweet Counter (Imarti, Rabdi, Jalebi)",
+      "quantity": 420,
+      "unit": "pax",
+      "unit_price": 200.0,
+      "line_total": 84000.0
+    }
+  ],
+  "additional_charges_rows": [
+    {
+      "description": "Unbundled Service Crew Staffing Fee (40 servers)",
+      "quantity": 1,
+      "unit": "lump_sum",
+      "unit_price": 60000.0,
+      "line_total": 60000.0
+    },
+    {
+      "description": "Kitchen Transport & Freight from Udaipur Base to Jaipur",
+      "quantity": 1,
+      "unit": "lump_sum",
+      "unit_price": 35000.0,
+      "line_total": 35000.0
+    },
+    {
+      "description": "Silent Acoustic Generator: Standby only @ INR 50,000 + GST extra",
+      "quantity": 1,
+      "unit": "unit",
+      "unit_price": 0.0,
+      "line_total": 0.0
+    }
+  ],
+  "subtotal": 1281000.0,
+  "additional_charges_total": 95000.0,
+  "gst_rate_percent": 18,
+  "gst_breakdown": "9% CGST + 9% SGST",
+  "tax_amount": 247680.0,
+  "grand_total": 1623680.0,
+  "inclusions": [
+    "Traditional copper and brass serving vessels",
+    "Raw grocery materials and authentic Rajasthani spices",
+    "Live clay oven and tandoor setup"
+  ],
+  "exclusions": [
+    "Service waitstaff unbundled (billed separately as INR 60,000)",
+    "Acoustic power generator not included (available on request @ INR 50,000 + GST)",
+    "Overtime beyond 11:30 PM charged at INR 20,000 per hour"
+  ],
+  "power_and_overtime_policy": "Generator available on request for INR 50,000 extra + GST. Overtime past 11:30 PM charged at INR 20,000/hr.",
+  "payment_terms": "70% booking advance upon contract signing; 30% 15 days prior to event date. 100% upfront required."
+}
