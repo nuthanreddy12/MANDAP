@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@theme {
+  /* DreamDay Inspired Luxury Palette: Deep Cocoa, Warm Ivory, Soft Taupe, Muted Bronze */
+  --color-ink: #2C2523;
+  --color-ink-muted: #70645D;
+  --color-ink-faint: #9E9188;
+
+  --color-ivory: #FAF7F2;
+  --color-ivory-card: #FFFFFF;
+  --color-ivory-warm: #F4EFEB;
+
+  --color-warm-stone: #E8DFD8;
+  --color-warm-stone-light: #F2ECE6;
+  --color-warm-stone-dark: #D4C7BD;
+
+  --color-antique-brass: #BA965D;
+  --color-antique-brass-light: #DFCAAA;
+  --color-antique-brass-dark: #8C6F3E;
+
+  --color-bronze: #8D674E;
+  --color-bronze-light: #EFE6E0;
+  --color-bronze-dark: #634633;
+
+  --color-garden: #5A7356;
+  --color-garden-light: #EDF3EC;
+  --color-garden-dark: #3F523C;
+
+  --color-terracotta: #B85D4D;
+  --color-terracotta-light: #FBEFEF;
+  --color-terracotta-dark: #8C3E32;
+
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Work Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Layer Base Accessibility and Foundations */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-ivory);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hard Gate R-39: Cursor pointer and not-allowed states */
+button,
+a,
+select,
+summary,
+[role="button"],
+[role="tab"] {
+  cursor: pointer;
+}
+
+button:disabled,
+[disabled],
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* Hard Gate R-32: Visible focus indicator */
+:focus-visible {
+  outline: 2px solid var(--color-antique-brass);
+  outline-offset: 2px;
+}
+
+/* Hard Gate R-39: prefers-reduced-motion compliance */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
