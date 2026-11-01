@@ -157,6 +157,17 @@ def test_milestone2_enquiry_lifecycle(client):
     assert task_get.status_code == 200
     assert task_get.json()["status"] == "done"
 
+    # 10. Clean up test records so test does not pollute production enquiry/wedding lists
+    clean_db = SessionLocal()
+    try:
+        clean_db.query(Task).filter(Task.wedding_id == wedding_id).delete()
+        clean_db.query(WeddingVendor).filter(WeddingVendor.wedding_id == wedding_id).delete()
+        clean_db.query(Wedding).filter(Wedding.id == wedding_id).delete()
+        clean_db.query(Enquiry).filter(Enquiry.id == enquiry_id).delete()
+        clean_db.commit()
+    finally:
+        clean_db.close()
+
 def test_vendor_directory_crud(client):
     # Test vendor creation
     v_payload = {

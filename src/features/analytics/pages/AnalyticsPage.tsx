@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import {
   BarChart,
   Bar,
@@ -7,8 +8,11 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from 'recharts'
+import { RefreshCw } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { formatINR } from '@/lib/formatters'
+import { getOverview } from '@/services/api'
 
 const PROFITABILITY_DATA = [
   { wedding: 'Singhania (Udaivilas)', revenue: 48, cost: 37, margin: 11 },
@@ -18,6 +22,11 @@ const PROFITABILITY_DATA = [
 ]
 
 export function AnalyticsPage() {
+  const { data: overview, isLoading, refetch } = useQuery({
+    queryKey: ['overview'],
+    queryFn: getOverview,
+  })
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-warm-stone/80">
@@ -34,21 +43,46 @@ export function AnalyticsPage() {
           </p>
         </div>
 
-        <Button
-          variant="outline"
-          size="md"
-          onClick={() => alert('Exporting season P&L ledger to PDF.')}
-        >
-          Export Financial Ledger
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="md"
+            leftIcon={<RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />}
+            onClick={() => refetch()}
+          >
+            Refresh
+          </Button>
+
+          <Button
+            variant="outline"
+            size="md"
+            onClick={() => alert('Exporting season P&L ledger to PDF.')}
+          >
+            Export Financial Ledger
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <Card variant="muted" className="p-5">
           <span className="text-xs uppercase tracking-wider text-ink-muted font-medium">
+            Active Celebrations
+          </span>
+          <p className="font-serif text-2xl font-bold text-ink mt-1">
+            {overview?.active_weddings_count || 4} Palace Weddings
+          </p>
+          <span className="text-[11px] text-garden font-medium block mt-0.5">
+            Jaipur & Udaipur Desk
+          </span>
+        </Card>
+
+        <Card variant="muted" className="p-5">
+          <span className="text-xs uppercase tracking-wider text-ink-muted font-medium">
             Season Gross Billings
           </span>
-          <p className="font-serif text-2xl font-bold text-ink mt-1">₹20.3 Cr</p>
+          <p className="font-serif text-2xl font-bold text-ink mt-1">
+            {overview?.total_contracted_revenue ? formatINR(overview.total_contracted_revenue) : '₹20.3 Cr'}
+          </p>
           <span className="text-[11px] text-garden font-medium block mt-0.5">
             +18% versus previous season
           </span>
@@ -56,91 +90,49 @@ export function AnalyticsPage() {
 
         <Card variant="muted" className="p-5">
           <span className="text-xs uppercase tracking-wider text-ink-muted font-medium">
-            Net Agency Retainer & Margin
+            Pending Milestones
           </span>
-          <p className="font-serif text-2xl font-bold text-ink mt-1">₹4.7 Cr</p>
-          <span className="text-[11px] text-bronze font-medium block mt-0.5">
-            23.1% average net commission
-          </span>
-        </Card>
-
-        <Card variant="muted" className="p-5">
-          <span className="text-xs uppercase tracking-wider text-ink-muted font-medium">
-            Vendor Payout Reconciliation
-          </span>
-          <p className="font-serif text-2xl font-bold text-ink mt-1">94.2%</p>
-          <span className="text-[11px] text-garden font-medium block mt-0.5">
-            Zero disputed line items
-          </span>
-        </Card>
-
-        <Card variant="muted" className="p-5">
-          <span className="text-xs uppercase tracking-wider text-ink-muted font-medium">
-            Avg Production Turnaround
-          </span>
-          <p className="font-serif text-2xl font-bold text-ink mt-1">4.2 Months</p>
+          <p className="font-serif text-2xl font-bold text-ink mt-1">
+            {overview?.pending_tasks_count || 19} Critical Cues
+          </p>
           <span className="text-[11px] text-ink-muted font-medium block mt-0.5">
-            From inquiry to first Phera
+            Statutory & Rigging Checkpoints
+          </span>
+        </Card>
+
+        <Card variant="muted" className="p-5">
+          <span className="text-xs uppercase tracking-wider text-ink-muted font-medium">
+            Verified Artisan Network
+          </span>
+          <p className="font-serif text-2xl font-bold text-ink mt-1">
+            {overview?.verified_vendors_count || 24} Guild Masters
+          </p>
+          <span className="text-[11px] text-bronze font-medium block mt-0.5">
+            Quality Vetted Rating &gt; 4.90
           </span>
         </Card>
       </div>
 
-      {/* Production Chart */}
-      <Card variant="default">
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <CardTitle className="text-xl font-serif">
-                Wedding Financial Breakdown (in ₹ Lakhs)
-              </CardTitle>
-              <p className="text-xs text-ink-muted mt-0.5">
-                Comparing Gross Production Revenue against Direct Artisan & Vendor Outlays
-              </p>
-            </div>
-            <div className="flex items-center gap-4 text-xs">
-              <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 bg-bronze rounded-xs inline-block" />
-                Gross Revenue
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 bg-garden rounded-xs inline-block" />
-                Agency Net Margin
-              </span>
-            </div>
-          </div>
+      <Card variant="elevated" className="p-6">
+        <CardHeader className="px-0 pt-0 pb-4">
+          <CardTitle className="text-xl font-serif">Portfolio Margin Distribution (Lakhs INR)</CardTitle>
+          <p className="text-xs text-ink-muted">Gross contracted billings versus direct technical and artisanal production expenses.</p>
         </CardHeader>
-
-        <CardContent className="h-80 w-full pt-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={PROFITABILITY_DATA}
-              margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#E8DFD8" vertical={false} />
-              <XAxis
-                dataKey="wedding"
-                tick={{ fill: '#70645D', fontSize: 11, fontFamily: 'Work Sans' }}
-                axisLine={{ stroke: '#E8DFD8' }}
-              />
-              <YAxis
-                tick={{ fill: '#70645D', fontSize: 11, fontFamily: 'Work Sans' }}
-                axisLine={{ stroke: '#E8DFD8' }}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#FFFFFF',
-                  borderColor: '#E8DFD8',
-                  borderRadius: '6px',
-                  fontFamily: 'Work Sans',
-                  fontSize: '12px',
-                  color: '#2C2523',
-                  boxShadow: '0 4px 12px rgba(44,37,35,0.06)',
-                }}
-              />
-              <Bar dataKey="revenue" name="Gross Revenue (₹L)" fill="#8D674E" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="margin" name="Net Agency Margin (₹L)" fill="#5A7356" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <CardContent className="px-0 pb-0">
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={PROFITABILITY_DATA} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2DBD0" vertical={false} />
+                <XAxis dataKey="wedding" tick={{ fill: '#71717A', fontSize: 11 }} />
+                <YAxis tick={{ fill: '#71717A', fontSize: 11 }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E8E2D9', borderRadius: '8px', fontSize: '12px' }}
+                />
+                <Bar dataKey="revenue" fill="#541424" name="Revenue (Lakhs)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="cost" fill="#B8860B" name="Cost (Lakhs)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
     </div>

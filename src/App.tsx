@@ -1,5 +1,7 @@
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { AuthProvider } from '@/lib/authContext'
+import { WeddingProvider } from '@/context/WeddingContext'
 import { AppRoutes } from '@/routes/AppRoutes'
 
 const queryClient = new QueryClient({
@@ -15,7 +17,11 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AppRoutes />
+        <AuthProvider>
+          <WeddingProvider>
+            <AppRoutes />
+          </WeddingProvider>
+        </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
   )

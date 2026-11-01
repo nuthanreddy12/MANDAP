@@ -19,6 +19,7 @@ if "auth_user_id" not in cols:
     c.execute("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_auth_user_id ON users (auth_user_id)")
     print("Added auth_user_id and unique index to users table.")
 
+c.execute("CREATE TABLE IF NOT EXISTS alembic_version (version_num VARCHAR(32) NOT NULL)")
 c.execute("DELETE FROM alembic_version")
 c.execute("INSERT INTO alembic_version (version_num) VALUES ('0002_add_auth_user_id_to_users')")
 conn.commit()

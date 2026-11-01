@@ -8,6 +8,7 @@ from backend.core.auth import get_current_user
 from backend.schemas.enquiry import EnquiryCreate, EnquiryUpdate, EnquiryResponse
 from backend.schemas.wedding import WeddingResponse
 from backend.api.task_templates import generate_wedding_tasks
+from backend.api.notifications import create_notification
 
 router = APIRouter(prefix="/api/v1/enquiries", tags=["Enquiries"])
 
@@ -36,7 +37,17 @@ def get_enquiries(
             (Enquiry.destination.ilike(search_term)) |
             (Enquiry.notes.ilike(search_term))
         )
-    return query.order_by(Enquiry.created_at.desc()).all()
+    raw_enquiries = query.order_by(Enquiry.created_at.desc()).all()
+
+    # Deduplicate enquiries by email and normalized couple names, preserving latest
+    seen_keys = set()
+    deduped_enquiries = []
+    for enq in raw_enquiries:
+        clean_key = (enq.email or enq.couple_names or enq.id).strip().lower()
+        if clean_key not in seen_keys:
+            seen_keys.add(clean_key)
+            deduped_enquiries.append(enq)
+    return deduped_enquiries
 
 @router.post("", response_model=EnquiryResponse, status_code=status.HTTP_201_CREATED)
 def create_enquiry(
@@ -65,6 +76,19 @@ def create_enquiry(
     db.add(enquiry)
     db.commit()
     db.refresh(enquiry)
+
+    try:
+        create_notification(
+            db=db,
+            title=f"New Wedding Enquiry: {enquiry.couple_names}",
+            message=f"New enquiry for {enquiry.destination or 'Rajasthan'} ({enquiry.guest_count or 400} guests, budget INR {float(enquiry.budget_max or 0):,.2f}). Assigned to {enquiry.assigned_owner}.",
+            category="enquiry",
+            recipient_role="planner",
+            link_url="/enquiries",
+        )
+    except Exception:
+        pass
+
     return enquiry
 
 @router.get("/{enquiry_id}", response_model=EnquiryResponse)

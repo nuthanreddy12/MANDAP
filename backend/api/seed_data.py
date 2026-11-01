@@ -14,6 +14,7 @@ from backend.models.models import (
     Invoice,
     Payment,
     CustomerInvitation,
+    Notification,
 )
 
 def seed_initial_data(db: Session):
@@ -22,10 +23,10 @@ def seed_initial_data(db: Session):
         return {"message": "Data already seeded"}
 
     # 1. Users
-    aarav = User(id="u1", name="Aarav Mehta", email="aarav@theroyalknot.in", role="owner", avatar_initials="AM")
-    nisha = User(id="u2", name="Nisha Sharma", email="nisha@theroyalknot.in", role="planner", avatar_initials="NS")
-    kabir = User(id="u3", name="Kabir Verma", email="kabir@theroyalknot.in", role="coordinator", avatar_initials="KV")
-    rhea = User(id="u4", name="Rhea Kapoor", email="rhea@theroyalknot.in", role="finance_manager", avatar_initials="RK")
+    aarav = User(id="u1", auth_user_id="1c3d8cd1-93d5-44a9-a65a-f102dd27df89", name="Aarav Mehta", email="aarav@theroyalknot.in", role="owner", avatar_initials="AM")
+    nisha = User(id="u2", auth_user_id="a7397e70-1ff6-47ae-85e1-b84b6888e4c5", name="Nisha Sharma", email="nisha@theroyalknot.in", role="planner", avatar_initials="NS")
+    kabir = User(id="u3", auth_user_id="66f21af9-ad42-44fc-9fb8-d48652a56f33", name="Kabir Verma", email="kabir@theroyalknot.in", role="coordinator", avatar_initials="KV")
+    rhea = User(id="u4", auth_user_id="bfd9a5db-0974-485e-81a9-2d30d221d0c9", name="Rhea Kapoor", email="rhea@theroyalknot.in", role="finance_manager", avatar_initials="RK")
     db.add_all([aarav, nisha, kabir, rhea])
 
     # 2. Vendors
@@ -479,6 +480,195 @@ def seed_initial_data(db: Session):
         is_shared_with_client=True,
     )
     db.add_all([doc1, doc2])
+
+
+    # 13. Entertainment Quotes for Stage 3 AI Procurement Matrix
+    v_unique = Vendor(id="v_unique_sound", name="Unique Sound", category="entertainment", contact_person="Rajeev Sen", phone="+91 98295 11223", city="Jaipur")
+    v_desert = Vendor(id="v_desert_strings", name="Desert Strings Ensemble", category="entertainment", contact_person="Fateh Khan", phone="+91 98295 33445", city="Jodhpur")
+    v_shehnai = Vendor(id="v_royal_shehnai", name="Royal Shehnai Virtuosos", category="entertainment", contact_person="Pandit Ram Das", phone="+91 98295 66778", city="Udaipur")
+    db.add_all([v_unique, v_desert, v_shehnai])
+    db.flush()
+
+    q_ent1 = Quote(
+        id="q_unique_sound",
+        wedding_id="w1",
+        vendor_id=v_unique.id,
+        vendor_name=v_unique.name,
+        category="entertainment",
+        total_amount=1600000.00,
+        price_per_unit=None,
+        guest_count_basis=420,
+        scope_summary="Line array sound system, 32-channel console, stage lighting, and 2 delay towers for Main Lawn.",
+        inclusions=["Main stage line array (JBL VTX)", "32-channel digital mixer", "Wireless microphone package", "2 delay towers", "4 dedicated sound engineers"],
+        exclusions=["Acoustic DG Generator: INR 45,000 extra per night"],
+        missing_terms=[],
+        additional_charges=[{"name": "Silent Acoustic DG Generator (125 kVA)", "amount": 45000, "status": "extra"}],
+        taxes_detail="18% GST extra (unbundled)",
+        status="under_review",
+        extraction_status="ready",
+        is_recommended=False,
+        source_filename="Unique_Sound_Technical_Bid.pdf",
+        version="v1",
+    )
+    q_ent2 = Quote(
+        id="q_desert_strings",
+        wedding_id="w1",
+        vendor_id=v_desert.id,
+        vendor_name=v_desert.name,
+        category="entertainment",
+        total_amount=1450000.00,
+        price_per_unit=None,
+        guest_count_basis=420,
+        scope_summary="16-piece folk symphony orchestra, Kamaicha, Sarangi, Morchang, and acoustic wireless amplification.",
+        inclusions=["16 master instrumentalists", "Traditional Rajasthani ceremonial music", "Custom attire", "Dedicated stage monitors & mics"],
+        exclusions=["Generator", "Interstate freight"],
+        missing_terms=[],
+        additional_charges=[{"name": "Acoustic Stage Generator", "amount": 0, "status": "included"}],
+        taxes_detail="Inclusive of 18% GST",
+        status="under_review",
+        extraction_status="ready",
+        is_recommended=True,
+        source_filename="Desert_Strings_Symphony_Proposal.pdf",
+        version="v1",
+    )
+    q_ent3 = Quote(
+        id="q_royal_shehnai",
+        wedding_id="w1",
+        vendor_id=v_shehnai.id,
+        vendor_name=v_shehnai.name,
+        category="entertainment",
+        total_amount=1720000.00,
+        price_per_unit=None,
+        guest_count_basis=420,
+        scope_summary="Classical Shehnai & Nagada masters with wireless roving microphone system across 3 venues.",
+        inclusions=["8 Shehnai & Nagada artists", "Auspicious Muhurat ceremonial cues", "Morning and evening raag sets"],
+        exclusions=[],
+        missing_terms=[],
+        additional_charges=[],
+        taxes_detail="Inclusive of 18% GST",
+        status="under_review",
+        extraction_status="ready",
+        is_recommended=False,
+        source_filename="Royal_Shehnai_Proposal_v2.pdf",
+        version="v1",
+    )
+    db.add_all([q_ent1, q_ent2, q_ent3])
+
+    # 14. Real Palace Clearance Documents
+    palace_docs = [
+        Document(
+            id="doc_palace_mooring",
+            wedding_id="w1",
+            filename="Jagmandir_Mooring_License.pdf",
+            file_size=775,
+            file_hash="hash_mooring_lic_2026",
+            storage_path="backend/storage/documents/w1/Jagmandir_Mooring_License.pdf",
+            content_type="application/pdf",
+            status="ready",
+            is_shared_with_client=True,
+        ),
+        Document(
+            id="doc_asi_drone_permit",
+            wedding_id="w1",
+            filename="City_Palace_Conservation_NOC.pdf",
+            file_size=775,
+            file_hash="hash_asi_drone_2026",
+            storage_path="backend/storage/documents/w1/City_Palace_Conservation_NOC.pdf",
+            content_type="application/pdf",
+            status="ready",
+            is_shared_with_client=True,
+        ),
+        Document(
+            id="doc_sound_noc",
+            wedding_id="w1",
+            filename="Acoustic_Compliance_Undertaking.pdf",
+            file_size=775,
+            file_hash="hash_sound_noc_2026",
+            storage_path="backend/storage/documents/w1/Acoustic_Compliance_Undertaking.pdf",
+            content_type="application/pdf",
+            status="ready",
+            is_shared_with_client=True,
+        ),
+        Document(
+            id="doc_fireworks_permit",
+            wedding_id="w1",
+            filename="Jagmandir_Fireworks_Permit.pdf",
+            file_size=775,
+            file_hash="hash_fireworks_2026",
+            storage_path="backend/storage/documents/w1/Jagmandir_Fireworks_Permit.pdf",
+            content_type="application/pdf",
+            status="ready",
+            is_shared_with_client=True,
+        ),
+        Document(
+            id="doc_rigging_cert",
+            wedding_id="w1",
+            filename="Electrical_Rigging_Safety_Cert.pdf",
+            file_size=775,
+            file_hash="hash_rigging_2026",
+            storage_path="backend/storage/documents/w1/Electrical_Rigging_Safety_Cert.pdf",
+            content_type="application/pdf",
+            status="ready",
+            is_shared_with_client=True,
+        ),
+        Document(
+            id="doc_master_agreement",
+            wedding_id="w1",
+            filename="Heritage_Master_Services_Agreement.pdf",
+            file_size=775,
+            file_hash="hash_master_msa_2026",
+            storage_path="backend/storage/documents/w1/Heritage_Master_Services_Agreement.pdf",
+            content_type="application/pdf",
+            status="ready",
+            is_shared_with_client=True,
+        ),
+    ]
+    db.add_all(palace_docs)
+
+    # 15. Operational Notifications
+    notifs = [
+        Notification(
+            id="notif_1",
+            wedding_id="w1",
+            recipient_role="staff",
+            title="Acoustic Curfew Clearance Approved",
+            message="Superintendent of Police Office granted 10:30 PM sound permit for Main Courtyard.",
+            category="compliance",
+            link_url="/documents",
+            is_read=False,
+        ),
+        Notification(
+            id="notif_2",
+            wedding_id="w1",
+            recipient_role="staff",
+            title="Vendor Quotation Needs Review",
+            message="The Marigold Co. catering bid requires tax term clarification and plate count confirmation.",
+            category="quotes",
+            link_url="/quotes",
+            is_read=False,
+        ),
+        Notification(
+            id="notif_3",
+            wedding_id="w1",
+            recipient_role="staff",
+            title="New High-Value Enquiry",
+            message="Singhania x Agrawal royal heritage palace lead submitted (Oberoi Udaivilas, 450 guests).",
+            category="enquiries",
+            link_url="/enquiries",
+            is_read=False,
+        ),
+        Notification(
+            id="notif_4",
+            wedding_id="w1",
+            recipient_role="staff",
+            title="Upcoming Milestone Due Today",
+            message="Venue walk-through at Oberoi Rajvilas scheduled with Lead Producer Aarav Mehta at 3:30 PM.",
+            category="tasks",
+            link_url="/tasks",
+            is_read=False,
+        ),
+    ]
+    db.add_all(notifs)
 
     db.commit()
     return {"message": "The Royal Knot season data successfully seeded"}

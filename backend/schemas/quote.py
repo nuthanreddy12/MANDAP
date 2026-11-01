@@ -99,8 +99,12 @@ class AIJobResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class VendorSelectionRequest(BaseModel):
+    quote_id: Optional[str] = None
+    category: Optional[str] = None
+    rationale: Optional[str] = None
     notes: Optional[str] = None
-    selected_by: str = "Aarav Mehta"
+    selected_by: Optional[str] = "Aarav Mehta"
+    reassign: Optional[bool] = False
 
 class VendorSelectionResponse(BaseModel):
     selection_id: str

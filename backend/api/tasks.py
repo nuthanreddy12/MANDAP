@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from backend.core.database import get_db
 from backend.models.models import Task, Wedding, User
 from backend.core.auth import get_current_user, verify_wedding_access, verify_task_access
+from backend.api.notifications import create_notification
 from backend.schemas.task import TaskCreate, TaskUpdate, TaskResponse
 
 router = APIRouter(tags=["Tasks"])
@@ -70,6 +71,20 @@ def create_wedding_task(
     db.add(new_task)
     db.commit()
     db.refresh(new_task)
+
+    try:
+        create_notification(
+            db=db,
+            title=f"Task Assigned: {new_task.title}",
+            message=f"Assigned to {new_task.owner_name} ({new_task.priority.upper()} priority, Stage: {new_task.stage.title()}).",
+            category="task",
+            recipient_role="planner",
+            wedding_id=wedding_id,
+            link_url="/tasks",
+        )
+    except Exception:
+        pass
+
     return new_task
 
 @router.patch("/api/v1/tasks/{task_id}", response_model=TaskResponse)
@@ -97,3 +112,30 @@ def get_task(
 ):
     task = verify_task_access(task_id, current_user, db, action="view")
     return task
+
+
+@router.post("/api/v1/weddings/{wedding_id}/tasks/check-overdue")
+def check_overdue_tasks(
+    wedding_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Check for overdue tasks and trigger persistent notifications for planners."""
+    verify_wedding_access(wedding_id, current_user, db, action="check overdue tasks for")
+    today_str = datetime.date.today().isoformat()
+    overdue = (
+        db.query(Task)
+        .filter(Task.wedding_id == wedding_id, Task.due_date < today_str, Task.status != "done")
+        .all()
+    )
+    for t in overdue:
+        create_notification(
+            db=db,
+            title=f"Overdue Task Alert: {t.title}",
+            message=f"Task assigned to {t.owner_name} was due on {t.due_date} ({t.priority.upper()} priority).",
+            category="task",
+            recipient_role="planner",
+            wedding_id=wedding_id,
+            link_url="/tasks",
+        )
+    return {"overdue_count": len(overdue), "tasks": [t.title for t in overdue]}

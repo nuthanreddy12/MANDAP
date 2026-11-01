@@ -80,11 +80,11 @@ class FinancialReconciliationEngine:
         seen_charges: Dict[str, int] = {}
 
         for inv_item in invoice_items:
-            desc = inv_item.get("original_description") or inv_item.get("description", "")
+            desc = inv_item.get("original_description") or inv_item.get("description") or inv_item.get("desc") or ""
             norm_desc = normalize_text(desc)
             inv_qty = to_decimal(inv_item.get("quantity", 1))
-            inv_rate = to_decimal(inv_item.get("unit_price"))
-            inv_line_total = to_decimal(inv_item.get("line_total", inv_qty * inv_rate))
+            inv_rate = to_decimal(inv_item.get("unit_price") or inv_item.get("rate") or inv_item.get("invoiced_amount", 0))
+            inv_line_total = to_decimal(inv_item.get("line_total") or inv_item.get("invoiced_amount") or (inv_qty * inv_rate))
 
             # Duplicate charge check
             charge_key = f"{norm_desc}_{inv_line_total}"
@@ -105,7 +105,7 @@ class FinancialReconciliationEngine:
             highest_sim = 0.0
 
             for q_item in quote_items:
-                q_desc = q_item.get("original_description") or q_item.get("description", "")
+                q_desc = q_item.get("original_description") or q_item.get("description") or q_item.get("desc") or ""
                 sim = calculate_token_similarity(desc, q_desc)
                 if sim > highest_sim:
                     highest_sim = sim
@@ -135,7 +135,7 @@ class FinancialReconciliationEngine:
                 # Matched approved quote item
                 q_qty = to_decimal(best_match.get("quantity", 1))
                 q_rate = to_decimal(best_match.get("unit_price"))
-                expected_total = to_decimal(best_match.get("line_total", q_qty * q_rate))
+                expected_total = to_decimal(best_match.get("line_total") or best_match.get("agreed_amount") or (q_qty * q_rate))
                 
                 qty_diff = inv_qty - q_qty
                 rate_diff = inv_rate - q_rate if (inv_rate > 0 and q_rate > 0) else Decimal("0.00")

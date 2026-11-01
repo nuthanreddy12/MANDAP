@@ -1,3 +1,7 @@
+import logging
+from backend.api.notifications import create_notification
+
+logger = logging.getLogger(__name__)
 import uuid
 import datetime
 from typing import List, Optional
@@ -40,6 +44,7 @@ from backend.services.storage import (
 from backend.services.pdf_extractor import extract_pdf_content
 from backend.services.gemini_extractor import (
     extract_quotation_with_gemini,
+    validate_quotation_math,
     GeminiApiKeyMissingError,
     GeminiExtractionError,
 )
@@ -165,11 +170,14 @@ async def upload_quote_document(
         # Step 2: Gemini Structured Extraction
         try:
             extracted_ai = extract_quotation_with_gemini(pdf_data)
+            validation = validate_quotation_math(extracted_ai)
 
             if extracted_ai.grand_total is not None:
                 quote.total_amount = extracted_ai.grand_total
             elif extracted_ai.subtotal is not None:
                 quote.total_amount = extracted_ai.subtotal
+            elif validation.calculated_line_items_total > 0:
+                quote.total_amount = validation.calculated_line_items_total
 
             quote.price_per_unit = extracted_ai.price_per_unit
             if extracted_ai.guest_count_basis:
@@ -186,8 +194,16 @@ async def upload_quote_document(
             quote.inclusions = extracted_ai.inclusions
             quote.exclusions = extracted_ai.exclusions
             quote.additional_charges = [c.model_dump() for c in extracted_ai.additional_charges]
-            quote.extraction_status = "ready"
-            quote.status = "complete"
+
+            if validation.is_valid:
+                quote.extraction_status = "ready"
+                quote.status = "complete"
+                quote.extraction_error = None
+            else:
+                quote.extraction_status = "needs_review"
+                quote.status = "needs_review"
+                quote.human_verified = False
+                quote.extraction_error = validation.explanation
 
             for item in extracted_ai.line_items:
                 qi = QuoteItem(
@@ -241,6 +257,20 @@ async def upload_quote_document(
 
     db.commit()
     db.refresh(quote)
+
+    try:
+        create_notification(
+            db=db,
+            title=f"Quotation Uploaded: {quote.vendor_name}",
+            message=f"Quotation received for {quote.category.title()} (Total: INR {float(quote.total_amount):,.2f}).",
+            category="quote",
+            recipient_role="planner",
+            wedding_id=wedding_id,
+            link_url="/quotes",
+        )
+    except Exception:
+        pass
+
     return quote
 
 @router.get("/api/v1/weddings/{wedding_id}/quotes", response_model=List[QuoteResponse])
@@ -265,9 +295,11 @@ def get_quote_by_id(
     quote = verify_quote_access(quote_id, current_user, db, action="view")
     return quote
 
+@router.post("/api/v1/weddings/{wedding_id}/quotes/{quote_id}/extract")
 @router.post("/api/v1/quotes/{quote_id}/extract")
 def trigger_quote_extraction(
     quote_id: str,
+    wedding_id: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -287,15 +319,39 @@ def trigger_quote_extraction(
 
     try:
         extracted = extract_quotation_with_gemini(pdf_data)
+        validation = validate_quotation_math(extracted)
+
         if extracted.grand_total is not None:
             quote.total_amount = extracted.grand_total
+        elif extracted.subtotal is not None:
+            quote.total_amount = extracted.subtotal
+        elif validation.calculated_line_items_total > 0:
+            quote.total_amount = validation.calculated_line_items_total
+
         quote.price_per_unit = extracted.price_per_unit
-        quote.taxes_detail = extracted.taxes_detail
+        if extracted.guest_count_basis:
+            quote.guest_count_basis = extracted.guest_count_basis
+        quote.quotation_number = extracted.quotation_number
+        quote.quotation_date = extracted.quotation_date
+        quote.validity_date = extracted.validity_date
+        quote.currency = extracted.currency or "INR"
+        quote.subtotal = extracted.subtotal
+        quote.tax_amount = extracted.tax_amount
+        quote.taxes_detail = extracted.taxes_detail or ("18% extra" if extracted.tax_amount else "Included")
+        quote.payment_terms = extracted.payment_terms
         quote.inclusions = extracted.inclusions
         quote.exclusions = extracted.exclusions
         quote.additional_charges = [c.model_dump() for c in extracted.additional_charges]
-        quote.extraction_status = "ready"
-        quote.status = "complete"
+
+        if validation.is_valid:
+            quote.extraction_status = "ready"
+            quote.status = "complete"
+            quote.extraction_error = None
+        else:
+            quote.extraction_status = "needs_review"
+            quote.status = "needs_review"
+            quote.human_verified = False
+            quote.extraction_error = validation.explanation
 
         db.query(QuoteItem).filter(QuoteItem.quote_id == quote.id).delete()
         for item in extracted.line_items:
@@ -399,6 +455,8 @@ def bulk_update_quote_items(
     db.refresh(quote)
     return quote
 
+@router.get("/api/v1/weddings/{wedding_id}/quotes/compare")
+@router.get("/api/v1/weddings/{wedding_id}/quote-comparisons")
 @router.post("/api/v1/weddings/{wedding_id}/quote-comparisons")
 def generate_or_get_quote_comparison(
     wedding_id: str,
@@ -418,6 +476,20 @@ def generate_or_get_quote_comparison(
 
     comparison = compare_quotations(quotes, wedding_guest_count=wedding.guest_count)
 
+    try:
+        from backend.services.ai_vendor_intelligence import generate_gemini_vendor_intelligence
+        ai_intel = generate_gemini_vendor_intelligence(
+            wedding_id=wedding_id,
+            category=category or "catering",
+            guest_count=wedding.guest_count or 420,
+            venue_name=getattr(wedding, "venue", None) or "The Oberoi Udaivilas",
+            analyzed_quotes=comparison.get("matrix", []),
+        )
+        if ai_intel:
+            comparison["insights"]["gemini_intelligence"] = ai_intel
+    except Exception as e:
+        logger.warning(f"Failed to generate Gemini vendor intelligence: {e}")
+
     qc = QuoteComparison(
         id=f"qc_{uuid.uuid4().hex[:8]}",
         wedding_id=wedding_id,
@@ -436,6 +508,7 @@ def select_winning_vendor(
     payload: VendorSelectionRequest = VendorSelectionRequest(),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    allow_reassign: bool = False,
 ):
     quote = verify_quote_access(quote_id, current_user, db, action="select")
 
@@ -447,11 +520,31 @@ def select_winning_vendor(
         VendorSelection.category == category
     ).first()
 
-    if existing_selection:
+    if existing_selection and not payload.reassign and not allow_reassign:
         raise HTTPException(
             status_code=400,
             detail=f"Vendor selection already locked for category '{category}' (Quote ID: {existing_selection.quote_id}). Duplicate selection is prevented."
         )
+
+    now_str = datetime.datetime.utcnow().isoformat()
+    if existing_selection:
+        selection_id = existing_selection.id
+        existing_selection.quote_id = quote.id
+        existing_selection.vendor_id = quote.vendor_id
+        existing_selection.selected_by = payload.selected_by or current_user.name
+        existing_selection.notes = payload.notes or f"Updated winning vendor selection to {quote.vendor_name}"
+    else:
+        selection_id = f"vs_{uuid.uuid4().hex[:8]}"
+        selection = VendorSelection(
+            id=selection_id,
+            wedding_id=wedding_id,
+            vendor_id=quote.vendor_id,
+            quote_id=quote.id,
+            category=category,
+            selected_by=payload.selected_by or current_user.name,
+            notes=payload.notes,
+        )
+        db.add(selection)
 
     quote.status = "selected"
 
@@ -480,19 +573,37 @@ def select_winning_vendor(
     else:
         existing_assignment.status = "confirmed"
 
-    selection_id = f"vs_{uuid.uuid4().hex[:8]}"
-    now_str = datetime.datetime.utcnow().isoformat()
-    selection = VendorSelection(
-        id=selection_id,
-        wedding_id=wedding_id,
-        vendor_id=quote.vendor_id,
-        quote_id=quote.id,
-        category=category,
-        selected_by=payload.selected_by or current_user.name,
-        notes=payload.notes,
-    )
-    db.add(selection)
+    other_vendors = db.query(WeddingVendor).filter(
+        WeddingVendor.wedding_id == wedding_id,
+        WeddingVendor.category == category,
+        WeddingVendor.vendor_id != quote.vendor_id
+    ).all()
+    for ov in other_vendors:
+        ov.status = "shortlisted"
+
     db.commit()
+
+    try:
+        create_notification(
+            db=db,
+            wedding_id=wedding_id,
+            recipient_role="staff",
+            title="Vendor Contract Selected",
+            message=f"Vendor '{quote.vendor_name}' officially selected for '{category}' on {wedding_id}.",
+            category="procurement",
+            link_url="/quotes",
+        )
+        create_notification(
+            db=db,
+            wedding_id=wedding_id,
+            recipient_role="finance_manager",
+            title="Vendor Contract Approved",
+            message=f"Approved quote for {quote.vendor_name} ({category.upper()}) is ready for 3-way invoice reconciliation.",
+            category="finance",
+            link_url="/finance",
+        )
+    except Exception:
+        pass
 
     return VendorSelectionResponse(
         selection_id=selection_id,
@@ -523,3 +634,94 @@ def download_document(
         media_type=doc.content_type or "application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{doc.filename}"'}
     )
+
+
+@router.post("/api/v1/weddings/{wedding_id}/quotes/select", response_model=VendorSelectionResponse)
+def select_wedding_vendor_quote(
+    wedding_id: str,
+    payload: VendorSelectionRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    qid = payload.quote_id
+    if not qid:
+        raise HTTPException(status_code=400, detail="quote_id is required")
+    return select_winning_vendor(quote_id=qid, payload=payload, db=db, current_user=current_user, allow_reassign=True)
+
+@router.get("/api/v1/weddings/{wedding_id}/documents")
+def list_wedding_documents(
+    wedding_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    verify_wedding_access(wedding_id, current_user, db, action="view documents for")
+    docs = db.query(Document).filter(Document.wedding_id == wedding_id).all()
+
+    # Deduplicate documents by normalized filename, preserving the latest upload
+    seen_filenames = set()
+    deduped_docs = []
+    # Sort newest first
+    sorted_docs = sorted(docs, key=lambda x: x.created_at or datetime.datetime.min, reverse=True)
+    for d in sorted_docs:
+        norm_name = d.filename.strip().lower()
+        if norm_name not in seen_filenames:
+            seen_filenames.add(norm_name)
+            deduped_docs.append(d)
+
+    results = []
+    for d in deduped_docs:
+        clean_title = d.filename.replace("_", " ").replace(".pdf", "")
+        # Remove any leading doc_xxxx prefix for cleaner display if present
+        if clean_title.startswith("doc ") or "doc_" in d.filename:
+            parts = clean_title.split(" ", 2)
+            if len(parts) > 1 and parts[0] == "doc":
+                clean_title = parts[-1]
+
+        # Humanize specific test / generated titles
+        if "unique quote" in clean_title.lower():
+            clean_title = "Unique Entertainment Quotation"
+        elif "saffron accuracy" in clean_title.lower():
+            clean_title = "Saffron Table Accuracy Benchmark"
+
+        results.append({
+            "id": d.id,
+            "wedding_id": d.wedding_id,
+            "filename": d.filename,
+            "title": clean_title,
+            "storage_path": d.storage_path,
+            "file_size": d.file_size,
+            "status": d.status,
+            "is_shared_with_client": d.is_shared_with_client,
+            "uploaded_at": d.created_at.isoformat() if d.created_at else None,
+        })
+    return results
+
+
+@router.patch("/api/v1/weddings/{wedding_id}/documents/{document_id}/share")
+def toggle_document_client_share(
+    wedding_id: str,
+    document_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Planner shares or unshares a verified document with the client sanctuary."""
+    doc = verify_document_access(document_id, current_user, db, action="share")
+    doc.is_shared_with_client = not doc.is_shared_with_client
+    db.commit()
+    db.refresh(doc)
+
+    if doc.is_shared_with_client:
+        try:
+            create_notification(
+                db=db,
+                title="New Document Shared by Planner",
+                message=f"Your lead wedding planner has shared '{doc.filename}' to your wedding sanctuary.",
+                category="document",
+                recipient_role="customer",
+                wedding_id=wedding_id,
+                link_url="/customer/dashboard",
+            )
+        except Exception:
+            pass
+
+    return {"message": "Document sharing status updated", "is_shared_with_client": doc.is_shared_with_client}

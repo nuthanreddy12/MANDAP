@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./mandap.db"
     
     # Supabase (optional local fallback if not yet configured)
-    SUPABASE_URL: str = ""
-    SUPABASE_ANON_KEY: str = ""
+    SUPABASE_URL: str = "https://comxzsluipgjfrfdvlev.supabase.co"
+    SUPABASE_ANON_KEY: str = "sb_publishable_ebVMyZRc9CX1sdC8dLw0tg_BB-bh1vB"
     SUPABASE_SERVICE_ROLE_KEY: str = ""
     SUPABASE_JWT_SECRET: str = ""
     SUPABASE_BUCKET: str = "mandap-documents"
@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "http://localhost:5175",
+        "http://127.0.0.1:5175",
+        "http://localhost:5176",
+        "http://127.0.0.1:5176",
         "http://localhost:3000",
     ]
 

@@ -393,3 +393,20 @@ class CustomerInvitation(Base):
 
     wedding = relationship("Wedding")
 
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(String, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True, index=True)
+    recipient_role = Column(String, nullable=True, index=True)  # owner, planner, coordinator, finance_manager, customer, all
+    wedding_id = Column(String, ForeignKey("weddings.id"), nullable=True, index=True)
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    category = Column(String, default="operational")  # operational, schedule, financial, quotes, enquiry, concierge
+    link_url = Column(String, nullable=True)
+    is_read = Column(Boolean, default=False, index=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    user = relationship("User")
+    wedding = relationship("Wedding")

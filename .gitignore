@@ -9,6 +9,7 @@ env/
 # Environment and secrets
 .env
 .env.*
+backend/.env
 !.env.example
 *.pem
 *.key

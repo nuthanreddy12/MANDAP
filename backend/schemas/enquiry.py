@@ -51,6 +51,26 @@ class EnquiryResponse(EnquiryBase):
 
     @computed_field
     @property
+    def client_names(self) -> str:
+        return self.couple_names
+
+    @computed_field
+    @property
+    def dates_interested(self) -> Optional[str]:
+        return self.rough_date
+
+    @computed_field
+    @property
+    def estimated_guest_count(self) -> int:
+        return self.guest_count
+
+    @computed_field
+    @property
+    def estimated_budget(self) -> Optional[float]:
+        return self.budget_max
+
+    @computed_field
+    @property
     def date(self) -> Optional[str]:
         return self.rough_date
 

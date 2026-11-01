@@ -1,3 +1,4 @@
+from backend.api.notifications import create_notification
 import uuid
 import json
 import datetime
@@ -12,6 +13,10 @@ from backend.core.auth import get_current_user, verify_wedding_access
 from backend.services.schedule_recovery import ScheduleRecoveryEngine
 
 router = APIRouter(prefix="/api/v1/weddings/{wedding_id}", tags=["Timeline & Incidents"])
+
+class EventDelayPayload(BaseModel):
+    delay_minutes: int
+    reason: Optional[str] = "Operational delay"
 
 class IncidentCreatePayload(BaseModel):
     title: str
@@ -229,6 +234,108 @@ def list_incidents(
         })
     return results
 
+
+@router.post("/timeline/events/{event_id}/delay")
+@router.post("/events/{event_id}/delay")
+def report_event_delay_and_recalculate(
+    wedding_id: str,
+    event_id: str,
+    payload: EventDelayPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    wedding = verify_wedding_access(wedding_id, current_user, db, action="report delay for")
+
+    target_evt = db.query(TimelineEvent).filter(
+        TimelineEvent.wedding_id == wedding_id,
+        TimelineEvent.id == event_id
+    ).first()
+
+    if not target_evt:
+        raise HTTPException(status_code=404, detail=f"Timeline event '{event_id}' not found for wedding '{wedding_id}'.")
+
+    # Fetch all events
+    events = (
+        db.query(TimelineEvent)
+        .filter(TimelineEvent.wedding_id == wedding_id)
+        .order_by(TimelineEvent.day_number, TimelineEvent.start_time)
+        .all()
+    )
+
+    event_dicts = [
+        {
+            "id": e.id,
+            "title": e.title,
+            "start_time": e.start_time,
+            "end_time": e.end_time,
+            "is_locked": e.is_locked,
+            "vendor_name": e.vendor_name,
+            "owner_name": e.owner_name,
+            "location": e.location,
+            "status": e.status,
+        }
+        for e in events
+    ]
+
+    recovery = ScheduleRecoveryEngine.calculate_recovery(
+        events=event_dicts,
+        incident_event_id=event_id,
+        vendor_name=target_evt.vendor_name,
+        delay_minutes=payload.delay_minutes,
+    )
+
+    ai_briefing = ScheduleRecoveryEngine.generate_ai_explanation(
+        recovery_data=recovery,
+        wedding_name=wedding.couple_names or "Mehra Wedding"
+    )
+    recovery["ai_briefing"] = ai_briefing
+
+    inc_id = f"inc_{uuid.uuid4().hex[:8]}"
+    incident = Incident(
+        id=inc_id,
+        wedding_id=wedding_id,
+        timeline_event_id=event_id,
+        vendor_name=target_evt.vendor_name,
+        title=f"{target_evt.title} delay ({payload.delay_minutes} min)",
+        severity="high" if payload.delay_minutes >= 30 else "medium",
+        delay_minutes=payload.delay_minutes,
+        affected_activities=", ".join(recovery.get("affected_event_ids", [])),
+        status="proposed_recovery",
+        reported_by=current_user.name or "Nisha Sharma",
+        assigned_to="Kabir Verma",
+        proposed_schedule_adjustment=json.dumps(recovery),
+    )
+    db.add(incident)
+
+    target_evt.vendor_arrival_status = "late"
+    target_evt.delay_minutes = payload.delay_minutes
+    db.commit()
+    db.refresh(incident)
+
+    try:
+        create_notification(
+            db=db,
+            wedding_id=wedding_id,
+            title="Ceremony Delay Reported",
+            message=f"{target_evt.title} reported +{payload.delay_minutes}m delay ({payload.reason or 'Operational delay'}). AI recovery plan ready for approval.",
+            severity="warning",
+            category="timeline",
+            target_url="/run-of-show",
+        )
+    except Exception:
+        pass
+
+    resp = dict(recovery)
+    resp.update({
+        "incident_id": incident.id,
+        "status": incident.status,
+        "delay_minutes": payload.delay_minutes,
+        "incident_event_title": target_evt.title,
+        "message": f"Delay of {payload.delay_minutes} min recorded on {target_evt.title}. Recovery proposed.",
+        "ai_briefing": ai_briefing,
+    })
+    return resp
+
 @router.post("/incidents")
 def report_incident(
     wedding_id: str,
@@ -321,11 +428,12 @@ def report_incident(
         "message": f"Incident recorded. Schedule recovery proposed ({recovery['affected_events_count']} activities affected)."
     }
 
+@router.post("/timeline/incidents/{incident_id}/approve")
 @router.post("/incidents/{incident_id}/approve")
 def approve_recovery(
     wedding_id: str,
     incident_id: str,
-    payload: IncidentDecisionPayload,
+    payload: IncidentDecisionPayload = IncidentDecisionPayload(),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -362,6 +470,18 @@ def approve_recovery(
 
     incident.status = "approved"
     db.commit()
+    try:
+        create_notification(
+            db=db,
+            wedding_id=wedding_id,
+            title="Recovery Schedule Approved",
+            message=f"Adjusted schedule for {incident.title} approved and committed to master timeline.",
+            severity="success",
+            category="timeline",
+            target_url="/run-of-show",
+        )
+    except Exception:
+        pass
 
     return {
         "message": f"Recovery plan approved. {updated_count} timeline events updated in database.",
@@ -401,3 +521,44 @@ def reject_recovery(
         "status": "rejected",
         "decided_by": payload.decided_by or current_user.name,
     }
+
+
+class VendorArrivalUpdatePayload(BaseModel):
+    vendor_arrival_status: str  # "arrived", "expected", "late"
+    notes: Optional[str] = None
+
+@router.patch("/timeline/events/{event_id}/arrival")
+@router.patch("/events/{event_id}/arrival")
+def update_vendor_arrival(
+    wedding_id: str,
+    event_id: str,
+    payload: VendorArrivalUpdatePayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Coordinator updates vendor arrival status (arrived / expected / late)."""
+    verify_wedding_access(wedding_id, current_user, db, action="update vendor arrival for")
+    evt = db.query(TimelineEvent).filter(TimelineEvent.id == event_id, TimelineEvent.wedding_id == wedding_id).first()
+    if not evt:
+        raise HTTPException(status_code=404, detail="Timeline event not found")
+
+    evt.vendor_arrival_status = payload.vendor_arrival_status
+    if payload.notes:
+        evt.notes = payload.notes
+    db.commit()
+    db.refresh(evt)
+
+    try:
+        create_notification(
+            db=db,
+            title=f"Vendor Arrival Status: {evt.vendor_name or evt.title}",
+            message=f"Vendor '{evt.vendor_name or evt.title}' status marked '{payload.vendor_arrival_status.upper()}' at {evt.location or 'Venue'}.",
+            category="timeline",
+            recipient_role="coordinator",
+            wedding_id=wedding_id,
+            link_url="/run-of-show",
+        )
+    except Exception:
+        pass
+
+    return evt

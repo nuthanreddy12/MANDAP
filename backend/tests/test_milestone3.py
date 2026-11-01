@@ -149,6 +149,21 @@ def test_5_duplicate_document(client):
     assert res2.status_code == 400
     assert "duplicate" in res2.text.lower()
 
+    # Clean up test records so test does not pollute document lists
+    created_doc_id = res1.json().get("document_id")
+    created_quote_id = res1.json().get("id")
+    from backend.core.database import SessionLocal
+    from backend.models.models import Document, Quote
+    cleanup_db = SessionLocal()
+    try:
+        if created_quote_id:
+            cleanup_db.query(Quote).filter(Quote.id == created_quote_id).delete()
+        if created_doc_id:
+            cleanup_db.query(Document).filter(Document.id == created_doc_id).delete()
+        cleanup_db.commit()
+    finally:
+        cleanup_db.close()
+
 def test_6_gemini_unavailable():
     # 6. Gemini unavailable or missing key raises GeminiApiKeyMissingError safely
     from backend.services.gemini_extractor import extract_quotation_with_gemini
